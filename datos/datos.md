@@ -1,0 +1,3 @@
+Los archivos random.bin (con datos aleatorios distribuidos uniformemente) y europa.bin (con datos reales de edificios en Europa) son necesarios para la realización de la tarea. El archivo europa_bonus.bin solo es necesario para la bonificación opcional (contiene los datos de Europa sin normalización).
+
+Se adjuntan archivos _sample.txt con los primeros 32 pares de números de cada archivo, para que puedan verificar que están cargando los datos correctamente. Si los datos que cargan son distintos, envíen un correo a los auxiliares.
