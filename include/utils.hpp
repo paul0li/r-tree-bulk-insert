@@ -42,6 +42,25 @@ inline void sortPointsByY(vector<Point>& points) { sort(points.begin(), points.e
 inline void sortByX(vector<Rectangle>& rects) { sort(rects.begin(), rects.end(), _compareByX); }
 inline void sortByY(vector<Rectangle>& rects) { sort(rects.begin(), rects.end(), _compareByY); }
 
+inline void writeTree(ofstream& file, const vector<Node>& nodes) {
+    for (const Node& node : nodes)
+        file.write(reinterpret_cast<const char*>(&node), sizeof(Node));
+}
+
+// Dos rectangulos intersectan si NO se separan en X ni en Y.
+inline bool intersects(const Rectangle& a, const Rectangle& b) {
+    return a.x1 <= b.x2 && a.x2 >= b.x1 &&
+           a.y1 <= b.y2 && a.y2 >= b.y1;
+}
+
+// Lee el nodo en posicion index del archivo binario.
+inline Node readNode(ifstream& file, int index) {
+    Node node;
+    file.seekg((long long)index * sizeof(Node));
+    file.read(reinterpret_cast<char*>(&node), sizeof(Node));
+    return node;
+}
+
 inline vector<Point> readPoints(const string& path, int N) {
     vector<Point> points;
     ifstream file(path, ios::binary);
