@@ -1,4 +1,9 @@
-#include <bits/stdc++.h>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <algorithm>
+#include <cstring>
+#include <string>
 using namespace std;
 
 struct Point {
