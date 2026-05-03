@@ -57,8 +57,16 @@ int main(int argc, char* argv[]) {
         cerr << "Error al abrir el archivo del árbol: " << treePath << "\n";
         return 1;
     }
+    // Calcular dónde está la raíz del árbol 
+    file.seekg(0, ios::end);                 // Ir al final del archivo
+    long long fileSize = file.tellg();       // Obtener tamaño en bytes
+    file.seekg(0, ios::beg);                 // Volver al inicio
 
+    int numNodes = fileSize / sizeof(Node);
+    int rootIndex = numNodes - 1;            // La raíz es el último nodo agregado
+    
     // Configuración para generar rectángulos aleatorios
+"""acá tengo dudas de porque generarlos aleatoriamente"""    
     random_device rd;
     mt19937 gen(rd());
     uniform_real_distribution<float> dis(0.0, 1.0 - s);
@@ -83,7 +91,7 @@ int main(int argc, char* argv[]) {
         auto start = chrono::high_resolution_clock::now();
         
         // Empezamos la búsqueda siempre desde la raíz (offset 0)
-        searchRTree(file, 0, query, results, ioCount);
+        searchRTree(file, rootIndex, query, results, ioCount);
         
         auto end = chrono::high_resolution_clock::now();
         
