@@ -1,9 +1,37 @@
 #include "utils.hpp"
 #include "str.hpp"
-#include "nearest_x.cpp"
 #include <cmath>
 
 using namespace std;
+
+static Child makeChildFromPoint(const Point& p) {
+    Child e;
+    e.mbr = makeRectFromPoint(p);
+    e.index = -1;
+    return e;
+}
+
+static Node makeNodeFromEntries(const vector<Child>& entries, int l, int r) {
+    Node node{};
+    node.k = r - l;
+
+    for (int i = 0; i < node.k; i++) {
+        node.hijos[i] = entries[l + i];
+    }
+
+    return node;
+}
+
+static vector<Child> pointsToEntries(const vector<Point>& points) {
+    vector<Child> entries;
+    entries.reserve(points.size());
+
+    for (const Point& p : points) {
+        entries.push_back(makeChildFromPoint(p));
+    }
+
+    return entries;
+}
 
 static vector<Child> buildSTRLevel(vector<Child>& current, vector<Node>& tree) {
     // 1. Ordenar todo por X

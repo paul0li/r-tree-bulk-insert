@@ -37,6 +37,15 @@ inline bool _comparePointsByY(const Point& a, const Point& b) { return a.y < b.y
 inline bool _compareByX(const Rectangle& a, const Rectangle& b) { return (a.x1 + a.x2) < (b.x1 + b.x2); }
 inline bool _compareByY(const Rectangle& a, const Rectangle& b) { return (a.y1 + a.y2) < (b.y1 + b.y2); }
 
+//dani:agregué estas funciones que comparan las entries (Child)
+inline bool compareEntriesByX(const Child& a, const Child& b) {
+    return (a.mbr.x1 + a.mbr.x2) < (b.mbr.x1 + b.mbr.x2);
+}
+
+inline bool compareEntriesByY(const Child& a, const Child& b) {
+    return (a.mbr.y1 + a.mbr.y2) < (b.mbr.y1 + b.mbr.y2);
+}
+
 inline void sortPointsByX(vector<Point>& points) { sort(points.begin(), points.end(), _comparePointsByX); }
 inline void sortPointsByY(vector<Point>& points) { sort(points.begin(), points.end(), _comparePointsByY); }
 
@@ -50,15 +59,6 @@ inline void sortEntriesByY(vector<Child>& entries) {
 }
 inline void sortByX(vector<Rectangle>& rects) { sort(rects.begin(), rects.end(), _compareByX); }
 inline void sortByY(vector<Rectangle>& rects) { sort(rects.begin(), rects.end(), _compareByY); }
-
-//dani:agregué estas funciones que comparan las entries (Child)
-inline bool compareEntriesByX(const Child& a, const Child& b) {
-    return (a.mbr.x1 + a.mbr.x2) < (b.mbr.x1 + b.mbr.x2);
-}
-
-inline bool compareEntriesByY(const Child& a, const Child& b) {
-    return (a.mbr.y1 + a.mbr.y2) < (b.mbr.y1 + b.mbr.y2);
-}
 
 inline void writeTree(ofstream& file, const vector<Node>& nodes) {
     for (const Node& node : nodes)
