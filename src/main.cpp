@@ -5,29 +5,37 @@
 #include <vector>
 #include <chrono>
 #include <random>
+#include <cmath>
 #include "../include/search.hpp"
 
 using namespace std;
 
 // ---------------------------------------------------------
-// MOTOR DE EXPERIMENTOS
+// MOTOR DE EXPERIMENTOS (Sección 5.2)
+// Uso: ./search_experiment <trees_dir> [N=16777216]
 // ---------------------------------------------------------
 int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        cout << "Uso: " << argv[0] << " <archivo_arbol.bin> <lado_consulta_s>\n";
+    if (argc < 2) {
+        cout << "Uso: " << argv[0] << " <trees_dir> [N=16777216]\n";
         return 1;
     }
 
-    string treePath = argv[1];
-    float s = stof(argv[2]); // Tamaño del lado de la consulta
+    string treesDir = argv[1];
+    int N = (argc >= 3) ? stoi(argv[2]) : (1 << 24);
 
-    // Abrir archivo binario usando ifstream (como dicta utils.hpp)
-    ifstream file(treePath, ios::binary);
-    if (!file.is_open()) {
-        cerr << "Error al abrir el archivo del árbol: " << treePath << "\n";
-        return 1;
-    }
-    int rootIndex = 0;                       // La raíz siempre está en el índice 0
+    // Valores de s pedidos en el enunciado
+    vector<float> sList = {0.0025f, 0.005f, 0.01f, 0.025f, 0.05f};
+
+    // 4 árboles: dataset x método
+    struct TreeCfg { string dataset; string method; };
+    vector<TreeCfg> treeCfgs = {
+        {"random", "nearestx"},
+        {"random", "str"},
+        {"europa", "nearestx"},
+        {"europa", "str"},
+    };
+
+    int numQueries = 100;
 
     // Configuración para generar rectángulos aleatorios
     // usamos un generador de numeros aleatorios mejor que solo rand() para evitar patrones predecibles
@@ -37,48 +45,68 @@ int main(int argc, char* argv[]) {
     cout << "Usando generador de números aleatorios: mt19937\n"; // esto es como para saber un poco mejor cuanto se esta demorando
     mt19937 gen(rd());
 
-    // Queremos generar rectángulos de tamaño s x s dentro del espacio [0,1]x[0,1]
-    uniform_real_distribution<float> dis(0.0, 1.0 - s);
+    cout << "dataset,method,N,s,avg_io,avg_points,stddev_points\n";
 
-    int numQueries = 100;
-    long long totalIOs = 0;
-    long long totalPointsFound = 0;
-    long long totalTime_us = 0;
+    for (auto& cfg : treeCfgs) {
+        string treePath = treesDir + "/" + cfg.dataset + "_" + cfg.method
+                          + "_" + to_string(N) + ".bin";
 
-    cout << "Ejecutando " << numQueries << " consultas de tamaño " << s << "x" << s << "...\n";
+        // Abrir archivo binario usando ifstream (como dicta utils.hpp)
+        ifstream file(treePath, ios::binary);
+        if (!file.is_open()) {
+            cerr << "Error al abrir el archivo del árbol: " << treePath << "\n";
+            continue;
+        }
+        int rootIndex = 0;                       // La raíz siempre está en el índice 0
 
-    for (int i = 0; i < numQueries; i++) {
-        // Generar cuadrado de consulta aleatorio
-        float q_x1 = dis(gen);
-        float q_y1 = dis(gen);
-        Rectangle query = {q_x1, q_x1 + s, q_y1, q_y1 + s};
+        for (float s : sList) {
+            // Queremos generar rectángulos de tamaño s x s dentro del espacio [0,1]x[0,1]
+            uniform_real_distribution<float> dis(0.0, 1.0 - s);
 
-        vector<Point> results;
-        int ioCount = 0;
+            long long totalIOs = 0;
+            long long totalPointsFound = 0;
+            long long totalPointsSq = 0;
+            long long totalTime_us = 0;
 
-        // Medir el tiempo de la búsqueda
-        auto start = chrono::high_resolution_clock::now();
+            cerr << "Ejecutando " << numQueries << " consultas de tamaño " << s << "x" << s << "...\n";
 
-        // Empezamos la búsqueda siempre desde la raíz (offset 0)
-        searchRTree(file, rootIndex, query, results, ioCount);
+            for (int i = 0; i < numQueries; i++) {
+                // Generar cuadrado de consulta aleatorio
+                float q_x1 = dis(gen);
+                float q_y1 = dis(gen);
+                Rectangle query = {q_x1, q_x1 + s, q_y1, q_y1 + s};
 
-        auto end = chrono::high_resolution_clock::now();
+                vector<Point> results;
+                int ioCount = 0;
 
-        totalTime_us += chrono::duration_cast<chrono::microseconds>(end - start).count();
-        totalIOs += ioCount;
-        totalPointsFound += results.size();
+                // Medir el tiempo de la búsqueda
+                auto start = chrono::high_resolution_clock::now();
+
+                // Empezamos la búsqueda siempre desde la raíz (offset 0)
+                searchRTree(file, rootIndex, query, results, ioCount);
+
+                auto end = chrono::high_resolution_clock::now();
+
+                int pts = (int)results.size();
+                totalTime_us += chrono::duration_cast<chrono::microseconds>(end - start).count();
+                totalIOs += ioCount;
+                totalPointsFound += pts;
+                totalPointsSq += (long long)pts * pts;
+            }
+
+            // Calcular promedios y desviación estándar
+            double avgIO     = totalIOs         / (double)numQueries;
+            double avgPts    = totalPointsFound  / (double)numQueries;
+            double variance  = (totalPointsSq / (double)numQueries) - (avgPts * avgPts);
+            double stddevPts = sqrt(max(0.0, variance));
+
+            cout << cfg.dataset << "," << cfg.method << "," << N << ","
+                 << s << "," << avgIO << "," << avgPts << "," << stddevPts << "\n";
+            cout.flush();
+        }
+
+        file.close();
     }
-
-    file.close();
-
-    // Calcular promedios
-    cout << "--------------------------------------\n";
-    cout << "Resultados Promedio (sobre " << numQueries << " consultas):\n";
-    cout << "Tamaño de consulta (s): " << s << " (" << (s*s*100) << "% del área)\n";
-    cout << "Tiempo de búsqueda:     " << (totalTime_us / (double)numQueries) << " microsegundos\n";
-    cout << "Lecturas a disco (I/O): " << (totalIOs / (double)numQueries) << "\n";
-    cout << "Puntos encontrados:     " << (totalPointsFound / (double)numQueries) << "\n";
-    cout << "--------------------------------------\n";
 
     return 0;
 }
