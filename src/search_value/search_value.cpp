@@ -66,9 +66,14 @@ int main(int argc, char* argv[]) {
     int rootIndex = numNodes - 1;            // La raíz es el último nodo agregado
     
     // Configuración para generar rectángulos aleatorios
-"""acá tengo dudas de porque generarlos aleatoriamente"""    
+    // usamos un generador de numeros aleatorios mejor que solo rand() para evitar patrones predecibles
+    // vimos en internet que era mejor usar rd y mt19937 para tener mejores numeros aleatorios, lo malo es que es un poco mas lento 
+    cout << "Generando consultas aleatorias...\n";
     random_device rd;
+    cout << "Usando generador de números aleatorios: mt19937\n"; // esto es como para saber un poco mejor cuanto se esta demorando
     mt19937 gen(rd());
+    
+    // Queremos generar rectángulos de tamaño s x s dentro del espacio [0,1]x[0,1]
     uniform_real_distribution<float> dis(0.0, 1.0 - s);
 
     int numQueries = 100;
