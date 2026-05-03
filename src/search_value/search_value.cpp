@@ -1,114 +1,97 @@
-// este es un programa inicial iwi aún falta para cambiar!
-// no juzgar TT
+// Experimento 5.2: consultas por rectángulo sobre los 4 árboles con N=2^24
+// Uso: ./search.out <trees_dir> [N=16777216]
+// Salida CSV por stdout: dataset,method,N,s,avg_io,avg_points,stddev_points
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <chrono>
 #include <random>
-#include "../include/utils.hpp" 
+#include <cmath>
+#include "../../include/search.hpp"
 
 using namespace std;
 
-// ---------------------------------------------------------
-// ALGORITMO DE BÚSQUEDA RECURSIVA EN DISCO
-// ---------------------------------------------------------
-void searchRTree(ifstream& file, int nodeIndex, const Rectangle& query, vector<Point>& results, int& ioCount) {
-    // 1. Leer el nodo desde el disco usando la función de Pau
-    Node node = readNode(file, nodeIndex);
-    
-    // 2. Cada vez que leemos un nodo, es un I/O (Lectura a disco)
-    ioCount++; 
-
-    // 3. Revisar cada hijo de este nodo
-    for (int i = 0; i < node.k; i++) {
-        // Usamos el 'intersects' de utils.hpp para ver si vale la pena entrar
-        if (intersects(query, node.hijos[i].mbr)) {
-            
-            if (node.hijos[i].index == -1) {
-                // CASO BASE: Es una hoja (un punto)
-                // Como 'intersects' funciona perfecto para puntos (rectángulos de área 0),
-                // si entra en el 'if', el punto está dentro de la consulta.
-                Point p = {node.hijos[i].mbr.x1, node.hijos[i].mbr.y1};
-                results.push_back(p);
-            } else {
-                // CASO RECURSIVO: Es un nodo interno
-                // Llamamos a la función con el índice de este hijo
-                searchRTree(file, node.hijos[i].index, query, results, ioCount);
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------
-// MOTOR DE EXPERIMENTOS
-// ---------------------------------------------------------
 int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        cout << "Uso: " << argv[0] << " <archivo_arbol.bin> <lado_consulta_s>\n";
+    if (argc < 2) {
+        cout << "Uso: " << argv[0] << " <trees_dir> [N=16777216]\n";
         return 1;
     }
 
-    string treePath = argv[1];
-    float s = stof(argv[2]); // Tamaño del lado de la consulta
+    string treesDir = argv[1];
+    int N = (argc >= 3) ? stoi(argv[2]) : (1 << 24);
 
-    // Abrir archivo binario usando ifstream (como dicta utils.hpp)
-    ifstream file(treePath, ios::binary);
-    if (!file.is_open()) {
-        cerr << "Error al abrir el archivo del árbol: " << treePath << "\n";
-        return 1;
-    }
-    int rootIndex = 0;                       // La raíz siempre está en el índice 0
-    
-    // Configuración para generar rectángulos aleatorios
-    // usamos un generador de numeros aleatorios mejor que solo rand() para evitar patrones predecibles
-    // vimos en internet que era mejor usar rd y mt19937 para tener mejores numeros aleatorios, lo malo es que es un poco mas lento 
-    cout << "Generando consultas aleatorias...\n";
-    random_device rd;
-    cout << "Usando generador de números aleatorios: mt19937\n"; // esto es como para saber un poco mejor cuanto se esta demorando
-    mt19937 gen(rd());
-    
-    // Queremos generar rectángulos de tamaño s x s dentro del espacio [0,1]x[0,1]
-    uniform_real_distribution<float> dis(0.0, 1.0 - s);
+    // Valores de s pedidos en el enunciado
+    vector<float> sList = {0.0025f, 0.005f, 0.01f, 0.025f, 0.05f};
+
+    // 4 árboles: dataset x método
+    struct TreeCfg { string dataset; string method; };
+    vector<TreeCfg> treeCfgs = {
+        {"random", "nearestx"},
+        {"random", "str"},
+        {"europa", "nearestx"},
+        {"europa", "str"},
+    };
 
     int numQueries = 100;
-    long long totalIOs = 0;
-    long long totalPointsFound = 0;
-    long long totalTime_us = 0;
 
-    cout << "Ejecutando " << numQueries << " consultas de tamaño " << s << "x" << s << "...\n";
+    // usamos rd y mt19937 para tener mejores numeros aleatorios
+    random_device rd;
+    mt19937 gen(rd());
 
-    for (int i = 0; i < numQueries; i++) {
-        // Generar cuadrado de consulta aleatorio
-        float q_x1 = dis(gen);
-        float q_y1 = dis(gen);
-        Rectangle query = {q_x1, q_x1 + s, q_y1, q_y1 + s};
+    cout << "dataset,method,N,s,avg_io,avg_points,stddev_points\n";
 
-        vector<Point> results;
-        int ioCount = 0;
+    for (float s : sList) {
+        // Generar las 100 consultas una sola vez por valor de s,
+        // para que todos los árboles reciban las mismas queries
+        uniform_real_distribution<float> dis(0.0f, 1.0f - s);
+        vector<Rectangle> queries(numQueries);
+        for (int i = 0; i < numQueries; i++) {
+            float x1 = dis(gen);
+            float y1 = dis(gen);
+            queries[i] = {x1, x1 + s, y1, y1 + s};
+        }
 
-        // Medir el tiempo de la búsqueda
-        auto start = chrono::high_resolution_clock::now();
-        
-        // Empezamos la búsqueda siempre desde la raíz (offset 0)
-        searchRTree(file, rootIndex, query, results, ioCount);
-        
-        auto end = chrono::high_resolution_clock::now();
-        
-        totalTime_us += chrono::duration_cast<chrono::microseconds>(end - start).count();
-        totalIOs += ioCount;
-        totalPointsFound += results.size();
+        for (auto& cfg : treeCfgs) {
+            string treePath = treesDir + "/" + cfg.dataset + "_" + cfg.method
+                              + "_" + to_string(N) + ".bin";
+
+            ifstream file(treePath, ios::binary);
+            if (!file.is_open()) {
+                cerr << "Error al abrir el archivo del árbol: " << treePath << "\n";
+                continue;
+            }
+
+            cerr << "Ejecutando " << numQueries << " consultas de tamaño " << s
+                 << "x" << s << " en " << cfg.dataset << "/" << cfg.method << "...\n";
+
+            long long totalIOs = 0;
+            long long totalPointsFound = 0;
+            long long totalPointsSq = 0;
+
+            for (int i = 0; i < numQueries; i++) {
+                vector<Point> results;
+                int ioCount = 0;
+
+                searchRTree(file, 0, queries[i], results, ioCount);
+
+                int pts = (int)results.size();
+                totalIOs += ioCount;
+                totalPointsFound += pts;
+                totalPointsSq += (long long)pts * pts;
+            }
+
+            double avgIO     = totalIOs        / (double)numQueries;
+            double avgPts    = totalPointsFound / (double)numQueries;
+            double variance  = (totalPointsSq  / (double)numQueries) - (avgPts * avgPts);
+            double stddevPts = sqrt(max(0.0, variance));
+
+            cout << cfg.dataset << "," << cfg.method << "," << N << ","
+                 << s << "," << avgIO << "," << avgPts << "," << stddevPts << "\n";
+            cout.flush();
+
+            file.close();
+        }
     }
-
-    file.close();
-
-    // Calcular promedios
-    cout << "--------------------------------------\n";
-    cout << "Resultados Promedio (sobre " << numQueries << " consultas):\n";
-    cout << "Tamaño de consulta (s): " << s << " (" << (s*s*100) << "% del área)\n";
-    cout << "Tiempo de búsqueda:     " << (totalTime_us / (double)numQueries) << " microsegundos\n";
-    cout << "Lecturas a disco (I/O): " << (totalIOs / (double)numQueries) << "\n";
-    cout << "Puntos encontrados:     " << (totalPointsFound / (double)numQueries) << "\n";
-    cout << "--------------------------------------\n";
 
     return 0;
 }
