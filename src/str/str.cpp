@@ -34,7 +34,7 @@ static vector<Child> pointsToEntries(const vector<Point>& points) {
 }
 
 static vector<Child> buildSTRLevel(vector<Child>& current, vector<Node>& tree) {
-    // 1. Ordenar todo por X
+    // Ordenar todo por X
     sort(current.begin(), current.end(), compareEntriesByX);
 
     int n = (int)current.size();
@@ -51,18 +51,18 @@ static vector<Child> buildSTRLevel(vector<Child>& current, vector<Node>& tree) {
     vector<Child> parentEntries;
     parentEntries.reserve(numNodes);
 
-    // 2. Recorrer franjas verticales
+    // Recorrer franjas verticales
     for (int stripeStart = 0; stripeStart < n; stripeStart += stripeSize) {
         int stripeEnd = min(stripeStart + stripeSize, n);
 
-        // 3. Dentro de la franja, ordenar por Y
+        // Dentro de la franja, ordenar por Y
         sort(
             current.begin() + stripeStart,
             current.begin() + stripeEnd,
             compareEntriesByY
         );
 
-        // 4. Dentro de la franja, agrupar de a B
+        // Dentro de la franja, agrupar de a B
         for (int i = stripeStart; i < stripeEnd; i += B) {
             int l = i;
             int r = min(i + B, stripeEnd);
