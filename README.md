@@ -1,8 +1,8 @@
 # Tarea 1 — Bulk-loading de R-trees
 
-## Descripción
+## Descripción del Proyecto
 
-Implementación de un R-tree con memoria secundaria simulada mediante archivos binarios. La construcción usa dos técnicas de bulk-loading (Nearest-X y STR) para comparar eficiencia en consultas de rango minimizando lecturas a disco (I/O).
+Este proyecto implementa un R-tree simulando el modelo de memoria secundaria mediante el uso de archivos binarios. La construcción del árbol se realiza utilizando dos técnicas de Bulk-loading (carga masiva) con el objetivo de comparar qué partición espacial es más eficiente para realizar consultas de rango minimizando las lecturas a disco (I/O).
 
 ---
 
@@ -13,7 +13,35 @@ Implementación de un R-tree con memoria secundaria simulada mediante archivos b
 
 ---
 
+## Archivos del Proyecto
+
+| Archivo | Descripción |
+|---|---|
+| `include/structs.hpp` | Definición de las estructuras Point, Rectangle, Child y Node (4096 bytes). |
+| `include/utils.hpp` | Funciones auxiliares (cálculo de MBR, lectura/escritura binaria a disco, intersección, etc.). |
+| `include/search.hpp` | Búsqueda recursiva en disco (searchRTree). |
+| `src/nearest_x/nearest_x.hpp` | Cabecera del método Nearest-X. |
+| `src/str/str.hpp` | Cabecera del método STR. |
+| `src/nearest_x/nearest_x.cpp` | Implementación del algoritmo de Bulk-loading Nearest-X. |
+| `src/str/str.cpp` | Implementación del algoritmo de Bulk-loading Sort-Tile-Recursive (STR). |
+| `src/main.cpp` | Experimento 5.1: construye árboles para cada N ∈ {2¹⁵,...,2²⁴} y los serializa a disco. |
+| `src/search_value/search_value.cpp` | Experimento 5.2: motor de búsqueda en disco, promedia I/Os y puntos sobre 100 consultas aleatorias. |
+| `Makefile` | Instrucciones de compilación automatizada y limpieza. |
+
+---
+
+## Estructuras Principales (`include/structs.hpp`)
+
+- `Point`: Par de coordenadas espaciales (x, y).
+- `Rectangle`: MBR definido por límites inferior y superior (x1, x2, y1, y2).
+- `Child`: Par clave-valor de un nodo que contiene el MBR del hijo y su index (posición en el arreglo serializado). Usa -1 para identificar las hojas.
+- `Node`: Estructura que simula un bloque de disco. Contiene la cantidad de hijos k, un arreglo de B = 204 hijos, y un padding para pesar exactamente 4096 bytes.
+
+---
+
 ## Compilación
+
+Para compilar todo el proyecto (usando la bandera de optimización `-O3`), sitúate en la raíz del proyecto y ejecuta:
 
 ```bash
 make
@@ -86,7 +114,7 @@ Para guardar resultados:
 
 ## Uso libre de las funciones
 
-Si quieres construir y consultar un árbol desde tu propio código, incluye los headers y usa directamente:
+Si quieres construir y consultar un árbol desde tu propio código:
 
 ### Construcción
 
@@ -124,40 +152,6 @@ searchRTree(file, 0, query, results, ioCount); // 0 = índice de la raíz
 // results contiene los puntos dentro del rectángulo
 // ioCount contiene la cantidad de lecturas a disco
 ```
-
----
-
-## Estructura del Proyecto
-
-```
-.
-├── include/
-│   ├── structs.hpp       # Estructuras Point, Rectangle, Child, Node (4096 bytes)
-│   ├── utils.hpp         # Funciones auxiliares: MBR, lectura/escritura binaria, intersección
-│   └── search.hpp        # Búsqueda recursiva en disco (searchRTree)
-├── src/
-│   ├── build_experiment.cpp          # Experimento 5.1: construye árboles para todos los N
-│   ├── main.cpp                      # Experimento 5.2: consultas por rectángulo
-│   ├── nearest_x/
-│   │   ├── nearest_x.hpp             # Cabecera de Nearest-X
-│   │   └── nearest_x.cpp             # Implementación de buildNearestX
-│   └── str/
-│       ├── str.hpp                   # Cabecera de STR
-│       └── str.cpp                   # Implementación de buildSTR
-├── datos/
-│   ├── random.bin        # Dataset aleatorio uniforme en [0,1]×[0,1]
-│   └── europa.bin        # Dataset de edificios en Europa (normalizado a [0,1]×[0,1])
-└── Makefile
-```
-
----
-
-## Estructuras principales (`include/structs.hpp`)
-
-- `Point`: par de coordenadas (x, y).
-- `Rectangle`: MBR con límites (x1, x2, y1, y2).
-- `Child`: entrada de nodo — MBR del hijo + índice en el arreglo serializado (-1 si es hoja).
-- `Node`: bloque de disco de exactamente 4096 bytes. Contiene `k` hijos activos (máximo B=204) y padding.
 
 ---
 
