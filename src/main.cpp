@@ -1,91 +1,84 @@
-#include "include/utils.hpp"
+// este es un programa inicial iwi aún falta para cambiar!
+// no juzgar TT
+#include <iostream>
+#include <fstream>
+#include <vector>
 #include <chrono>
+#include <random>
+#include "../include/search.hpp"
 
 using namespace std;
 
-vector<Node> buildNearestX(const vector<Point>& points);
-vector<Node> buildSTR(const vector<Point>& points);
-
-void writeTreeToFile(const vector<Node>& tree, const string& outPath) {
-    ofstream file(outPath, ios::binary);
-
-    if (!file) {
-        cerr << "No se pudo crear archivo: " << outPath << "\n";
-        return;
-    }
-
-    writeTree(file, tree);
-    file.close();
-}
-
-bool validateTree(const vector<Node>& tree) {
-    if (tree.empty()) {
-        cerr << "ERROR: árbol vacío\n";
-        return false;
-    }
-
-    cout << "sizeof(Node): " << sizeof(Node) << "\n";
-
-    if (sizeof(Node) != 4096) {
-        cerr << "ERROR: Node no pesa 4096 bytes\n";
-        return false;
-    }
-
-    for (int i = 0; i < (int)tree.size(); i++) {
-        if (tree[i].k < 1 || tree[i].k > B) {
-            cerr << "ERROR: nodo " << i << " tiene k inválido: "
-                 << tree[i].k << "\n";
-            return false;
-        }
-    }
-
-    return true;
-}
-
+// ---------------------------------------------------------
+// MOTOR DE EXPERIMENTOS
+// ---------------------------------------------------------
 int main(int argc, char* argv[]) {
-    if (argc < 5) {
-        cout << "Uso:\n";
-        cout << "  " << argv[0] << " <nearestx|str> <archivo.bin> <N> <salida_tree.bin>\n";
+    if (argc < 3) {
+        cout << "Uso: " << argv[0] << " <archivo_arbol.bin> <lado_consulta_s>\n";
         return 1;
     }
 
-    string method = argv[1];
-    string path = argv[2];
-    int N = stoi(argv[3]);
-    string outPath = argv[4];
+    string treePath = argv[1];
+    float s = stof(argv[2]); // Tamaño del lado de la consulta
 
-    vector<Point> points = readPoints(path, N);
-    cout << "Puntos leídos: " << points.size() << "\n";
-
-    vector<Node> tree;
-
-    auto start = chrono::high_resolution_clock::now();
-
-    if (method == "nearestx") {
-        tree = buildNearestX(points);
-    } else if (method == "str") {
-        tree = buildSTR(points);
-    } else {
-        cerr << "Método inválido. Usa nearestx o str.\n";
+    // Abrir archivo binario usando ifstream (como dicta utils.hpp)
+    ifstream file(treePath, ios::binary);
+    if (!file.is_open()) {
+        cerr << "Error al abrir el archivo del árbol: " << treePath << "\n";
         return 1;
     }
+    int rootIndex = 0;                       // La raíz siempre está en el índice 0
 
-    auto end = chrono::high_resolution_clock::now();
-    double seconds = chrono::duration<double>(end - start).count();
+    // Configuración para generar rectángulos aleatorios
+    // usamos un generador de numeros aleatorios mejor que solo rand() para evitar patrones predecibles
+    // vimos en internet que era mejor usar rd y mt19937 para tener mejores numeros aleatorios, lo malo es que es un poco mas lento
+    cout << "Generando consultas aleatorias...\n";
+    random_device rd;
+    cout << "Usando generador de números aleatorios: mt19937\n"; // esto es como para saber un poco mejor cuanto se esta demorando
+    mt19937 gen(rd());
 
-    cout << "Método: " << method << "\n";
-    cout << "Tiempo construcción: " << seconds << " segundos\n";
-    cout << "Nodos creados: " << tree.size() << "\n";
-    cout << "Hijos raíz: " << tree[0].k << "\n";
+    // Queremos generar rectángulos de tamaño s x s dentro del espacio [0,1]x[0,1]
+    uniform_real_distribution<float> dis(0.0, 1.0 - s);
 
-    if (!validateTree(tree)) {
-        return 1;
+    int numQueries = 100;
+    long long totalIOs = 0;
+    long long totalPointsFound = 0;
+    long long totalTime_us = 0;
+
+    cout << "Ejecutando " << numQueries << " consultas de tamaño " << s << "x" << s << "...\n";
+
+    for (int i = 0; i < numQueries; i++) {
+        // Generar cuadrado de consulta aleatorio
+        float q_x1 = dis(gen);
+        float q_y1 = dis(gen);
+        Rectangle query = {q_x1, q_x1 + s, q_y1, q_y1 + s};
+
+        vector<Point> results;
+        int ioCount = 0;
+
+        // Medir el tiempo de la búsqueda
+        auto start = chrono::high_resolution_clock::now();
+
+        // Empezamos la búsqueda siempre desde la raíz (offset 0)
+        searchRTree(file, rootIndex, query, results, ioCount);
+
+        auto end = chrono::high_resolution_clock::now();
+
+        totalTime_us += chrono::duration_cast<chrono::microseconds>(end - start).count();
+        totalIOs += ioCount;
+        totalPointsFound += results.size();
     }
 
-    writeTreeToFile(tree, outPath);
+    file.close();
 
-    cout << "Árbol escrito en: " << outPath << "\n";
-    cout << "OK\n";
+    // Calcular promedios
+    cout << "--------------------------------------\n";
+    cout << "Resultados Promedio (sobre " << numQueries << " consultas):\n";
+    cout << "Tamaño de consulta (s): " << s << " (" << (s*s*100) << "% del área)\n";
+    cout << "Tiempo de búsqueda:     " << (totalTime_us / (double)numQueries) << " microsegundos\n";
+    cout << "Lecturas a disco (I/O): " << (totalIOs / (double)numQueries) << "\n";
+    cout << "Puntos encontrados:     " << (totalPointsFound / (double)numQueries) << "\n";
+    cout << "--------------------------------------\n";
 
     return 0;
 }

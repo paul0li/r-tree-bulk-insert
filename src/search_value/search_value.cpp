@@ -57,13 +57,7 @@ int main(int argc, char* argv[]) {
         cerr << "Error al abrir el archivo del árbol: " << treePath << "\n";
         return 1;
     }
-    // Calcular dónde está la raíz del árbol 
-    file.seekg(0, ios::end);                 // Ir al final del archivo
-    long long fileSize = file.tellg();       // Obtener tamaño en bytes
-    file.seekg(0, ios::beg);                 // Volver al inicio
-
-    int numNodes = fileSize / sizeof(Node);
-    int rootIndex = numNodes - 1;            // La raíz es el último nodo agregado
+    int rootIndex = 0;                       // La raíz siempre está en el índice 0
     
     // Configuración para generar rectángulos aleatorios
     // usamos un generador de numeros aleatorios mejor que solo rand() para evitar patrones predecibles
