@@ -1,6 +1,6 @@
 // Bonus 5.3: construye R-tree con europa_bonus.bin (lon/lat no normalizados),
 // consulta un cuadrado alrededor de una ubicación y vuelca puntos a CSV.
-// N fijo en 2^24 (igual que resto de la tarea).
+// N fijo en 2^24.
 // Uso: ./bonus.out <europa_bonus.bin> <lon_c> <lat_c> <half_side> <out_tree.bin> <out_points.csv>
 #include <iostream>
 #include <fstream>
