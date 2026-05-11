@@ -8,7 +8,7 @@ Este proyecto implementa un R-tree simulando el modelo de memoria secundaria med
 
 ## Requisitos
 
-- g++ con soporte C++17
+- `g++` con soporte `C++17`
 - make
 
 ---

@@ -15,7 +15,7 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
     if (argc < 7) {
-        cerr << "Uso: " << argv[0]
+        cout << "Uso: " << argv[0]
              << " <europa_bonus.bin> <lon_c> <lat_c> <half_side> <out_tree.bin> <out_points.csv>\n";
         return 1;
     }
@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
     {
         ofstream treeFile(outTree, ios::binary);
         if (!treeFile) {
-            cerr << "[bonus] Error: no se pudo abrir " << outTree << " para escritura.\n";
+            cout << "[bonus] Error: no se pudo abrir " << outTree << " para escritura.\n";
             return 1;
         }
         writeTree(treeFile, tree);
@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
 
     ifstream treeIn(outTree, ios::binary);
     if (!treeIn) {
-        cerr << "[bonus] Error: no se pudo abrir " << outTree << " para lectura.\n";
+        cout << "[bonus] Error: no se pudo abrir " << outTree << " para lectura.\n";
         return 1;
     }
 
@@ -60,19 +60,17 @@ int main(int argc, char* argv[]) {
     auto s1 = chrono::high_resolution_clock::now();
     double searchMs = chrono::duration_cast<chrono::microseconds>(s1 - s0).count() / 1000.0;
 
-    cerr << "[bonus] Búsqueda: " << results.size() << " puntos, "
-         << ioCount << " I/Os, " << searchMs << " ms\n";
 
     ofstream csv(outCsv);
     if (!csv) {
-        cerr << "[bonus] Error: no se pudo abrir " << outCsv << " para escritura.\n";
+        cout << "[bonus] Error: no se pudo abrir " << outCsv << " para escritura.\n";
         return 1;
     }
     csv << "x,y\n";
     for (const Point& p : results) {
         csv << p.x << "," << p.y << "\n";
     }
-    cerr << "[bonus] Puntos guardados en " << outCsv << "\n";
+    cout << "[bonus] Puntos guardados en " << outCsv << "\n";
 
     return 0;
 }
