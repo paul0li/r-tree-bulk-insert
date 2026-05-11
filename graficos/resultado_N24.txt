@@ -1,0 +1,6 @@
+=== Construcción (N=2^24) ===
+dataset   method        N  time_ms
+ random nearestx 16777216  2117.06
+ random      str 16777216  3275.25
+ europa nearestx 16777216  2167.19
+ europa      str 16777216  3369.88
