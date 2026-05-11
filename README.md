@@ -26,6 +26,7 @@ Este proyecto implementa un R-tree simulando el modelo de memoria secundaria med
 | `src/str/str.cpp` | Implementación del algoritmo de Bulk-loading Sort-Tile-Recursive (STR). |
 | `src/main.cpp` | Experimento 5.1: construye árboles para cada N ∈ {2¹⁵,...,2²⁴} y los serializa a disco. |
 | `src/search_value/search_value.cpp` | Experimento 5.2: motor de búsqueda en disco, promedia I/Os y puntos sobre 100 consultas aleatorias. |
+| `src/bonus/bonus.cpp` | Experimento 5.3 (bonus): construye R-tree sobre `europa_bonus.bin` (lon/lat no normalizados) y consulta zona elegida. |
 | `Makefile` | Instrucciones de compilación automatizada y limpieza. |
 
 ---
@@ -47,7 +48,7 @@ Para compilar todo el proyecto (usando la bandera de optimización `-O3`), sitú
 make
 ```
 
-Genera dos ejecutables: `build.out` (construcción) y `search.out` (consultas).
+Genera tres ejecutables: `build.out` (construcción), `search.out` (consultas) y `bonus.out` (sección 5.3).
 
 Para limpiar:
 ```bash
@@ -109,6 +110,23 @@ Para guardar resultados:
 ```bash
 ./search.out trees/ > search_results.csv 2>search_log.txt
 ```
+
+### Experimento 5.3 — Bonus: visualización
+
+Construye un R-tree (STR) sobre `datos/europa_bonus.bin` (coordenadas en lon/lat sin normalizar), consulta un cuadrado alrededor de una ubicación y vuelca los puntos a CSV.
+
+N fijo en 2²⁴ (igual que el experimento principal).
+
+```bash
+./bonus.out <europa_bonus.bin> <lon_c> <lat_c> <half_side> <out_tree.bin> <out_points.csv>
+```
+
+Ejemplo (Cádiz, España, medio lado 0.25°):
+```bash
+./bonus.out datos/europa_bonus.bin -6.29 36.53 0.25 trees/europa_bonus_str.bin bonus_points.csv
+```
+
+Logs (cantidad de puntos retornados, I/Os, tiempo de construcción y búsqueda) salen por stderr. El scatterplot se genera en la última celda de `graficos.ipynb` y queda en `plots/bonus_cadiz.png` / `.pdf`.
 
 ---
 
